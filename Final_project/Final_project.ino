@@ -1,8 +1,18 @@
-#include<Stepper.h>
-#include<LiquidCrystal.h>
+#include <LiquidCrystal.h>
+#include <DHT11.h>
+#include <Stepper.h>
+#include <RTClib.h>
 
 #define RDA 0x80
 #define TBE 0x20
+// DHT Objects
+
+DHT11 DHT(10); //Pin 10
+RTC_DS3231 rtc;
+
+const int WATERSENSORPIN = 2;
+const int STARTBUTTON = 15;
+volatile bool coolerOn = false;
 
 // UART Pointers
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
@@ -16,10 +26,29 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
+volatile unsigned char* LIGHT_DDR = (unsigned char*) 0x24; 
+volatile unsigned char* LIGHT_PORT = (unsigned char*) 0x25; 
+volatile unsigned int RED = 5; 
+volatile unsigned int GREEN = 6; 
+volatile unsigned int BLUE = 7; 
+
+volatile unsigned char* MOTOR_DDR = (unsigned char*) 0x10A; // PORT L PINS 42 - 49 inclusive
+volatile unsigned char* MOTOR_PORT = (unsigned char*) 0x10B; // PORT L PINS 42 - 49 inclusive
+
+int dir1 = 4;
+int dir2 = 3;
 
 void setup() {
   // put your setup code here, to run once:
-  U0init(9600);
+  U0Init(9600);
+  attachInterrupt(digitalPinToInterrupt(StartButton), blink, RISING);
+  adc_init();
+  if (! rtc.begin()) {
+    U0putchar("Couldn't find RTC");
+    Serial.flush();
+    while (1);
+  }
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 void loop() {
