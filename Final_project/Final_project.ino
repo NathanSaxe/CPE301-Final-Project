@@ -2,16 +2,23 @@
 #include <DHT11.h>
 #include <Stepper.h>
 #include <RTClib.h>
+#include <string.h>
 
 #define RDA 0x80
 #define TBE 0x20
-// DHT Objects
+volatile int state = 0;
 
+// DHT Objects
 DHT11 DHT(10); //Pin 10
 RTC_DS3231 rtc;
 
-const int WATERSENSORPIN = 2;
-const int STARTBUTTON = 15;
+//STEPPER MOTOR PRESETS
+const int stepsPerRevolution = 2038;
+Stepper Vent = Stepper(stepsPerRevolution, 22, 24, 26 , 28);
+
+//WATER COOLER PRESETS
+const int WATERSENSORPIN = 22;
+const int STARTBUTTON = 13;
 volatile bool coolerOn = false;
 
 // UART Pointers
@@ -38,17 +45,33 @@ volatile unsigned char* MOTOR_PORT = (unsigned char*) 0x10B; // PORT L PINS 42 -
 int dir1 = 4;
 int dir2 = 3;
 
+volatile unsigned int buttonCount = 0;
+//LCD SCREEN PRESETS
+//LCD Pins to Arduino Pins
+const int RS = 12, EN = 11, D4 = 5, D5 = 4, D6 = 3, D7 = 2;
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
+byte degree[8] = {
+  0b00110000,
+  0b01001000,
+  0b01001000,
+  0b00110000,
+  0b00000000,
+  0b00000000,
+  0b00000000,
+  0b00000000,
+};
+
+
 void setup() {
   // put your setup code here, to run once:
   U0Init(9600);
-  attachInterrupt(digitalPinToInterrupt(StartButton), blink, RISING);
-  adc_init();
-  if (! rtc.begin()) {
-    U0putchar("Couldn't find RTC");
-    Serial.flush();
-    while (1);
-  }
+  lcd.begin(16,2);
+  rtc.begin();
+  lcd.clear();
+  createLCDReadout();
+  attachInterrupt(digitalPinToInterrupt(STARTBUTTON), blink, RISING);
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  adc_init(); //start ADC module
 }
 
 void loop() {
@@ -126,4 +149,42 @@ void putChar(unsigned char U0pdata)
 {
   while((*myUCSR0A & TBE)==0);
   *myUDR0 = U0pdata;
+}
+void countButtonPresses(){
+  buttonCount++;
+}
+
+void moveVent(int direction){
+  if (direction == -1 && ventPosition > 0){
+    Vent.step(-stepsPerRevolution/48); //7.5* shift
+    ventPosition -= 7.5;
+  } else if (ventPosition < 90 && direction == 1){
+    Vent.step(stepsPerRevolution/48);
+    ventPosition += 7.5;
+  }
+}
+
+int getTemp(){
+  int temperature = DHT.readTemperature();
+  return temperature;
+}
+
+//check humidity
+int getHumidity(){
+  int humidity = DHT.readHumidity();
+  return humidity;
+}
+
+void getTime(){
+  DateTime now = rtc.now();
+}
+
+void createLCDReadout(){
+  lcd.print("Temperature:  *C");
+  lcd.setCursor(0, 1);
+  lcd.print("Humidity:   %");
+}
+
+void blink(){
+  state = !state;
 }
