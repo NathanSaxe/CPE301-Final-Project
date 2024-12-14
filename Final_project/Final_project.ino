@@ -15,6 +15,8 @@ RTC_DS3231 rtc;
 //STEPPER MOTOR PRESETS
 const int stepsPerRevolution = 2038;
 Stepper Vent = Stepper(stepsPerRevolution, 22, 24, 26 , 28);
+int ventPosition = 45;
+
 
 //WATER COOLER PRESETS
 const int WATERSENSORPIN = 22;
