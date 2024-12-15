@@ -24,10 +24,18 @@ const int STARTBUTTON = 13;
 volatile bool coolerOn = false;
 // A Pointers(Digital Pins 22-29)
 // Primarily in charge of button input
+//Button is at Pin 29
 
 volatile unsigned char *PIN_A = (unsigned char *)0x20;
 volatile unsigned char *DDR_A = (unsigned char *)0x21;
 volatile unsigned char *PORT_A = (unsigned char *)0x22;
+// B Pointers(Digital Pins 10-13, 50-53)
+//Receives serial data from DHT11 at Pin 10/PB4
+
+volatile unsigned char *PIN_B = (unsigned char *)0x23;
+volatile unsigned char *DDR_B = (unsigned char *)0x24;
+volatile unsigned char *PORT_B = (unsigned char *)0x25;
+
 
 // C Pointers(Digital Pins 30-37)
 // Outputs LED light
@@ -44,7 +52,14 @@ volatile unsigned char *PORT_C = (unsigned char *)0x28;
 
 volatile unsigned char *PIN_D = (unsigned char *)0x29;
 volatile unsigned char *DDR_D = (unsigned char *)0x2A;
-volatile unsigned char *PORT_D = (unsigned char *)0x2B
+volatile unsigned char *PORT_D = (unsigned char *)0x2B;
+
+// F Pointers(Analog Pins 0-7)
+//PF0 holds the Temperature/Humidity sensor
+//PF7 holds 
+volatile unsigned char *PIN_F = (unsigned char *)0x2F;
+volatile unsigned char *DDR_F = (unsigned char *)0x30;
+volatile unsigned char *PORT_F = (unsigned char *)0x31;
 
 // UART Pointers
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
@@ -167,9 +182,6 @@ void putChar(unsigned char U0pdata)
   while((*myUCSR0A & TBE)==0);
   *myUDR0 = U0pdata;
 }
-void countButtonPresses(){
-  buttonCount++;
-}
 
 void moveVent(int direction){
   if (direction == -1 && ventPosition > 0){
@@ -214,5 +226,22 @@ void blink(){
 }
 
 void setGPIOPins(){
+  //Set A registers
+  //Set PA7 to input with pullup
+  *DDR_A |= 0x00; //0b 0000 0000
+  *PORT_A |= 0x70; //0b 1000 0000
+
+  //Set B registers
+  //PB4 inputs serial data from DHT11
+  *DDR_B |= 0x00; //0b 0000 0000
+  *PORT_B |= 0x00; //0b 1000 0000
+  
+  //Set C Registers
+  //Set Lights to receive output
+  //Red is at PC2
+  //Green is at PC4
+  //Blue is at PC6
+  *DDR_C |= 0x54; //0b 0101 0100
+  *PORT_C |= 0x00; //0b 0000 0000
 
 }
