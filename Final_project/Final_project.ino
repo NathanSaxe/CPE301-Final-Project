@@ -6,6 +6,10 @@
 
 #define RDA 0x80
 #define TBE 0x20
+#define IDLE 0
+#define RUNNING 1
+#define ERROR 2
+
 int state = 0;
 
 // DHT Objects
@@ -22,6 +26,7 @@ int ventPosition = 45;
 const int WATERSENSORPIN = 0;
 const int STARTBUTTON = 13;
 volatile bool coolerOn = false;
+
 // A Pointers(Digital Pins 22-29)
 // Primarily in charge of button input
 //Button is at Pin 29
@@ -29,6 +34,7 @@ volatile bool coolerOn = false;
 volatile unsigned char *PIN_A = (unsigned char *)0x20;
 volatile unsigned char *DDR_A = (unsigned char *)0x21;
 volatile unsigned char *PORT_A = (unsigned char *)0x22;
+
 // B Pointers(Digital Pins 10-13, 50-53)
 //Receives serial data from DHT11 at Pin 10/PB4
 
@@ -54,12 +60,47 @@ volatile unsigned char *PIN_D = (unsigned char *)0x29;
 volatile unsigned char *DDR_D = (unsigned char *)0x2A;
 volatile unsigned char *PORT_D = (unsigned char *)0x2B;
 
+// E Pointers(Digital Pins 5, 3-0)
+
+volatile unsigned char *PIN_E = (unsigned char *)0x2C;
+volatile unsigned char *DDR_E = (unsigned char *)0x2D;
+volatile unsigned char *PORT_E = (unsigned char *)0x2E;
+
 // F Pointers(Analog Pins 0-7)
-//PF0 holds the Temperature/Humidity sensor
-//PF7 holds the water sensor
+
 volatile unsigned char *PIN_F = (unsigned char *)0x2F;
 volatile unsigned char *DDR_F = (unsigned char *)0x30;
 volatile unsigned char *PORT_F = (unsigned char *)0x31;
+
+// G Pointers (Digital Pin 4, 39, 40, 41)
+
+volatile unsigned char *PIN_G = (unsigned char *)0x32;
+volatile unsigned char *DDR_G = (unsigned char *)0x33;
+volatile unsigned char *PORT_G = (unsigned char *)0x34;
+
+// H Pointers 
+
+volatile unsigned char *PIN_H = (unsigned char *)0x100;
+volatile unsigned char *DDR_H = (unsigned char *)0x101;
+volatile unsigned char *PORT_H = (unsigned char *)0x102;
+
+// J Pointers
+
+volatile unsigned char *PIN_J = (unsigned char *)0x103;
+volatile unsigned char *DDR_J = (unsigned char *)0x104;
+volatile unsigned char *PORT_J = (unsigned char *)0x105;
+
+// K Pointers
+
+volatile unsigned char *PIN_K = (unsigned char *)0x106;
+volatile unsigned char *DDR_K = (unsigned char *)0x107;
+volatile unsigned char *PORT_K = (unsigned char *)0x108;
+
+// L Pointers
+
+volatile unsigned char *PIN_L = (unsigned char *)0x109;
+volatile unsigned char *DDR_L = (unsigned char *)0x10A;
+volatile unsigned char *PORT_L = (unsigned char *)0x10B;
 
 // UART Pointers
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
@@ -87,6 +128,13 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
 void setup() {
   U0Init(9600);
+  
+  *DDR_A |= 0x70; //Button Input
+
+  *DDR_C |= 0x54; //RGB LEDs
+
+  *DDR_F |= 0x00; //Water Level Sensor
+  //setLEDState(state);
   lcd.begin(16,2);
   rtc.begin();
   lcd.clear();
@@ -97,16 +145,16 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  int temperature = getTemp();
+  int humidity = getHumidity();
 
   switch(state){
-    case 0:
-
-    case 1:
-
-    case 2:
-
-    case 3:
+    case IDLE:
+    break;
+    case RUNNING:
+    break;
+    case ERROR:
+    break;
   }
 }
 
@@ -184,7 +232,7 @@ void putChar(unsigned char U0pdata)
 
 void moveVent(int direction){
   if (direction == -1 && ventPosition > 0){
-    Vent.step(-stepsPerRevolution/48); //7.5* shift
+    Vent.step(-stepsPerRevolution/48);
     ventPosition -= 7.5;
   } else if (ventPosition < 90 && direction == 1){
     Vent.step(stepsPerRevolution/48);
@@ -215,42 +263,29 @@ void getTime(){
 }
 
 void createLCDReadout(){
-  lcd.print("Temperature:  *C");
+  lcd.setCursor(0, 0);
+  lcd.print(strcat("Temperature:", getTemp()));
   lcd.setCursor(0, 1);
-  lcd.print("Humidity:   %");
+  //lcd.print("Humidity: " + (char)getHumidity() + "  %");
 }
 
 void blink(){
   state = !state;
 }
 
-void setGPIOPins(){
-  //Set A registers
-  //Set PA7 to input with pullup
-  *DDR_A |= 0x00; //0b 0000 0000
-  *PORT_A |= 0x70; //0b 1000 0000
-
-  //Set B registers
-  //PB4 inputs serial data from DHT11
-  *DDR_B |= 0x00; //0b 0000 0000
-  *PORT_B |= 0x04; //0b 0000 1000
-  
-  //Set C Registers
-  //Set Lights to receive output
-  //Red is at PC2
-  //Green is at PC4
-  //Blue is at PC6
-  *DDR_C |= 0x54; //0b 0101 0100
-  *PORT_C |= 0x00; //0b 0000 0000
-
-  //Set D Registers
-
-  *DDR_D |= 0x00;
-  *PORT_D |= 0x00;
-
-  //Set F Registers
-  //PF7 holds the water sensor
-
-  *DDR_F |= 0x00;
-  *PORT_F |= 0x70;
+void setLEDState(int state){
+  switch(state){
+    case IDLE:
+      *PORT_C &= 0x00;
+      *PORT_C |= (1<<4);
+      break;
+    case RUNNING:
+      *PORT_C &= 0x00;
+      *PORT_C |= (1<<6);
+      break;
+    case ERROR:
+      *PORT_C &= 0x00;
+      *PORT_C |= (1<<2);
+      break;
+  }
 }
