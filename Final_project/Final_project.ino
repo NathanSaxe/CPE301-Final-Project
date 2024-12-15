@@ -6,7 +6,7 @@
 
 #define RDA 0x80
 #define TBE 0x20
-volatile int state = 0;
+int state = 0;
 
 // DHT Objects
 DHT11 DHT(10); //Pin 10
@@ -56,7 +56,7 @@ volatile unsigned char *PORT_D = (unsigned char *)0x2B;
 
 // F Pointers(Analog Pins 0-7)
 //PF0 holds the Temperature/Humidity sensor
-//PF7 holds 
+//PF7 holds the water sensor
 volatile unsigned char *PIN_F = (unsigned char *)0x2F;
 volatile unsigned char *DDR_F = (unsigned char *)0x30;
 volatile unsigned char *PORT_F = (unsigned char *)0x31;
@@ -83,16 +83,6 @@ int dir2 = 3;
 //LCD Pins to Arduino Pins
 const int RS = 12, EN = 11, D4 = 5, D5 = 4, D6 = 3, D7 = 2;
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
-byte degree[8] = {
-  0b00110000,
-  0b01001000,
-  0b01001000,
-  0b00110000,
-  0b00000000,
-  0b00000000,
-  0b00000000,
-  0b00000000,
-};
 
 
 void setup() {
@@ -109,6 +99,15 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
+  switch(state){
+    case 0:
+
+    case 1:
+
+    case 2:
+
+    case 3:
+  }
 }
 
 /*
@@ -234,7 +233,7 @@ void setGPIOPins(){
   //Set B registers
   //PB4 inputs serial data from DHT11
   *DDR_B |= 0x00; //0b 0000 0000
-  *PORT_B |= 0x00; //0b 1000 0000
+  *PORT_B |= 0x04; //0b 0000 1000
   
   //Set C Registers
   //Set Lights to receive output
@@ -244,4 +243,14 @@ void setGPIOPins(){
   *DDR_C |= 0x54; //0b 0101 0100
   *PORT_C |= 0x00; //0b 0000 0000
 
+  //Set D Registers
+
+  *DDR_D |= 0x00;
+  *PORT_D |= 0x00;
+
+  //Set F Registers
+  //PF7 holds the water sensor
+
+  *DDR_F |= 0x00;
+  *PORT_F |= 0x70;
 }
