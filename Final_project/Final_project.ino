@@ -19,9 +19,32 @@ int ventPosition = 45;
 
 
 //WATER COOLER PRESETS
-const int WATERSENSORPIN = 22;
+const int WATERSENSORPIN = 0;
 const int STARTBUTTON = 13;
 volatile bool coolerOn = false;
+// A Pointers(Digital Pins 22-29)
+// Primarily in charge of button input
+
+volatile unsigned char *PIN_A = (unsigned char *)0x20;
+volatile unsigned char *DDR_A = (unsigned char *)0x21;
+volatile unsigned char *PORT_A = (unsigned char *)0x22;
+
+// C Pointers(Digital Pins 30-37)
+// Outputs LED light
+
+//Red light is at Pin 35
+//Green light is at Pin 33
+//Blue light is at Pin 31
+volatile unsigned char *PIN_C = (unsigned char *)0x26;
+volatile unsigned char *DDR_C = (unsigned char *)0x27;
+volatile unsigned char *PORT_C = (unsigned char *)0x28;
+
+
+// D Pointers(Digital Pins 38)
+
+volatile unsigned char *PIN_D = (unsigned char *)0x29;
+volatile unsigned char *DDR_D = (unsigned char *)0x2A;
+volatile unsigned char *PORT_D = (unsigned char *)0x2B
 
 // UART Pointers
 volatile unsigned char *myUCSR0A = (unsigned char *)0x00C0;
@@ -35,19 +58,12 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
-volatile unsigned char* LIGHT_DDR = (unsigned char*) 0x24; 
-volatile unsigned char* LIGHT_PORT = (unsigned char*) 0x25; 
-volatile unsigned int RED = 5; 
-volatile unsigned int GREEN = 6; 
-volatile unsigned int BLUE = 7; 
-
 volatile unsigned char* MOTOR_DDR = (unsigned char*) 0x10A; // PORT L PINS 42 - 49 inclusive
 volatile unsigned char* MOTOR_PORT = (unsigned char*) 0x10B; // PORT L PINS 42 - 49 inclusive
 
 int dir1 = 4;
 int dir2 = 3;
 
-volatile unsigned int buttonCount = 0;
 //LCD SCREEN PRESETS
 //LCD Pins to Arduino Pins
 const int RS = 12, EN = 11, D4 = 5, D5 = 4, D6 = 3, D7 = 2;
@@ -65,7 +81,6 @@ byte degree[8] = {
 
 
 void setup() {
-  // put your setup code here, to run once:
   U0Init(9600);
   lcd.begin(16,2);
   rtc.begin();
@@ -177,6 +192,13 @@ int getHumidity(){
   return humidity;
 }
 
+int checkWaterLevel(){
+  int waterlevel = adc_read(WATERSENSORPIN);
+  if(waterlevel < 200){
+
+  }
+}
+
 void getTime(){
   DateTime now = rtc.now();
 }
@@ -189,4 +211,8 @@ void createLCDReadout(){
 
 void blink(){
   state = !state;
+}
+
+void setGPIOPins(){
+
 }
