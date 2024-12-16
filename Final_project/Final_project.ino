@@ -218,7 +218,7 @@ void U0Init(int U0baud)
  *myUCSR0C = 0x06;
  *myUBRR0  = tbaud;
 }
-void UARTDisplay(unsigned char message[]){
+void charStrDisplay(unsigned char message[]){
   int counter = 0;
   while(message[counter] != '\0'){
     putChar(message[counter]);
@@ -313,7 +313,7 @@ void getTime(){
   DateTime now = rtc.now();
   now.timestamp().toCharArray(date, 40);
   strcat(date, '\0');
-  UARTDisplay(date);
+  charStrDisplay(date);
   putChar('\n');
 }
 
