@@ -6,11 +6,15 @@
 
 #define RDA 0x80
 #define TBE 0x20
+
+#define DISABLED -1
 #define IDLE 0
 #define RUNNING 1
 #define ERROR 2
 
 int state = 0;
+volatile bool isOn = false;
+volatile bool reset = false;
 
 // DHT Objects
 DHT11 DHT(10); //Pin 10
@@ -18,13 +22,17 @@ RTC_DS3231 rtc;
 
 //STEPPER MOTOR PRESETS
 const int stepsPerRevolution = 2038;
-Stepper Vent = Stepper(stepsPerRevolution, 22, 24, 26 , 28);
+Stepper Vent = Stepper(stepsPerRevolution, 30, 32, 34 , 36);
 int ventPosition = 45;
+
+//FAN PRESETS
+const int TEMPTHRESHOLD = 28;
 
 
 //WATER COOLER PRESETS
 const int WATERSENSORPIN = 0;
-const int STARTBUTTON = 13;
+const int STARTBUTTON = 19;
+const int RESET = 18;
 volatile bool coolerOn = false;
 
 // A Pointers(Digital Pins 22-29)
@@ -129,15 +137,20 @@ LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 void setup() {
   U0Init(9600);
   
-  *DDR_A |= 0x70; //Button Input
+  *PORT_A |= 0x80; //Button Input
 
-  *DDR_C |= 0x54; //RGB LEDs
+  *DDR_C |= 0x55; //RGB LEDs
+
+  *PORT_D |= 0x08;
 
   *DDR_F |= 0x00; //Water Level Sensor
+
+  *DDR_L |= 0x01;
   //setLEDState(state);
   lcd.begin(16,2);
   rtc.begin();
   lcd.clear();
+  Vent.setSpeed(2);
   createLCDReadout();
   attachInterrupt(digitalPinToInterrupt(STARTBUTTON), blink, RISING);
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -147,16 +160,49 @@ void setup() {
 void loop() {
   int temperature = getTemp();
   int humidity = getHumidity();
-
-  switch(state){
-    case IDLE:
-    break;
-    case RUNNING:
-    break;
-    case ERROR:
-    break;
+  if(isOn == false){
+    lcd.clear();
+    setLEDState(DISABLED);
+    *PORT_L &= 0x00;
+    state = 0;
+  }
+  else{
+    if(checkWaterLevel() < 200){
+      state = 2;
+    }
+    else{
+      if(temperature > TEMPTHRESHOLD){
+        state = 1;
+      }
+    }
+    if(reset == true){
+      state = 0;
+    }
+    switch(state){
+      case IDLE:
+        setLEDState(IDLE);
+        *PORT_L &= 0x00;
+        lcd.clear();
+        createLCDReadout();
+        break;
+      case RUNNING:
+        setLEDState(RUNNING);
+        moveVent(-1);
+        *PORT_L |= 0x01;
+        lcd.clear();
+        createLCDReadout();
+        getTime();
+        break;
+      case ERROR:
+        setLEDState(ERROR);
+        *PORT_L &= 0x00;
+        lcd.clear();
+        errorLCDReadout();
+        break;
+    }
   }
 }
+
 
 /*
  * UART FUNCTIONS
@@ -172,7 +218,13 @@ void U0Init(int U0baud)
  *myUCSR0C = 0x06;
  *myUBRR0  = tbaud;
 }
-
+void UARTDisplay(unsigned char message[]){
+  int counter = 0;
+  while(message[counter] != '\0'){
+    putChar(message[counter]);
+    counter++;
+  }
+}
 void adc_init()
 {
   // setup the A register
@@ -253,28 +305,41 @@ int getHumidity(){
 
 int checkWaterLevel(){
   int waterlevel = adc_read(WATERSENSORPIN);
-  if(waterlevel < 200){
-
-  }
+  return waterlevel;
 }
 
 void getTime(){
+  char date[40];
   DateTime now = rtc.now();
+  now.timestamp().toCharArray(date, 40);
+  strcat(date, '\0');
+  UARTDisplay(date);
+  putChar('\n');
 }
 
 void createLCDReadout(){
-  lcd.setCursor(0, 0);
-  lcd.print(strcat("Temperature:", getTemp()));
+  lcd.print("Temp: ");
+  lcd.print(getTemp());
+  lcd.print("*C");
   lcd.setCursor(0, 1);
-  //lcd.print("Humidity: " + (char)getHumidity() + "  %");
+  lcd.print("Humid: ");
+  lcd.print(getHumidity());
+  lcd.print("%");
 }
-
+void errorLCDReadout(){
+  lcd.print("Water");
+  lcd.setCursor(0, 1);
+  lcd.print("Low");
+}
 void blink(){
-  state = !state;
+  isOn = !isOn;
 }
-
 void setLEDState(int state){
   switch(state){
+    case DISABLED:
+      *PORT_C &= 0x00;
+      *PORT_C |= 0x01;
+      break;
     case IDLE:
       *PORT_C &= 0x00;
       *PORT_C |= (1<<4);
