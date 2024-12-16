@@ -197,7 +197,7 @@ void loop() {
         setLEDState(ERROR);
         *PORT_L &= 0x00;
         lcd.clear();
-        errorLCDReadout();
+        lcd.print("Water Low");
         break;
     }
   }
@@ -285,7 +285,7 @@ void putChar(unsigned char U0pdata)
 void moveVent(int direction){
   if (direction == -1 && ventPosition > 0){
     Vent.step(-stepsPerRevolution/48);
-    ventPosition -= 7.5;
+    ventPosition -= 22.5;
   } else if (ventPosition < 90 && direction == 1){
     Vent.step(stepsPerRevolution/48);
     ventPosition += 7.5;
@@ -326,11 +326,7 @@ void createLCDReadout(){
   lcd.print(getHumidity());
   lcd.print("%");
 }
-void errorLCDReadout(){
-  lcd.print("Water");
-  lcd.setCursor(0, 1);
-  lcd.print("Low");
-}
+
 void blink(){
   isOn = !isOn;
 }
